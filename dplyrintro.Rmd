@@ -1,0 +1,140 @@
+---
+title: "Intro to dplyr"
+output: html_document
+date: "2022-12-04"
+---
+
+## why use dplyr?
+
+-   great for data exploration and transformation
+-   intuitive to write and read
+
+## dplyr functionality
+
+-   Five basic verbs: `filter`, `select`, `arrange`, `mutate`, `summarize` (plus `group-by`)
+
+## create a local data frame
+
+-   we use `as.tibble` to make a "local data frame" which is just a wrapper for a data frame that prints nicely
+
+```{r}
+
+# convert to local data frame
+books_l <- tibble::as_tibble(books)
+
+```
+
+## filter: keep rows matching certain criteria
+
+```{r}
+
+# view all novels or memoirs read in 2019 
+
+# base approach:
+books_l[books_l$year==2019 & books_l$sub.genre=="Novel" | books_l$sub.genre=="Memoir",]
+
+#dplyr approach:
+filter(books_l, year==2019, sub.genre=="Novel" | sub.genre=="Memoir")
+#even better:
+filter(books_l, year==2019, sub.genre %in% c("Novel", "Memoir"))
+
+```
+
+## select: pick columns by name
+
+```{r}
+
+# select year, pages, and genre
+
+#base approach
+books_l[, c("year", "pages", "genre")]
+
+#dplyr approach
+select(books_l, year, pages, genre)
+
+```
+
+## using %\>% operator
+
+-   the usual way of performing multiple operations in one line is to nest but %\>% is a lot neater and easier to read
+
+```{r}
+
+# nesting approach to select book, author, and sub.genre and filter for history
+filter(select(books_l, book, author, sub.genre), sub.genre=="History")
+
+#chaining method using %>%
+books_l %>%
+  select(book, author, sub.genre) %>%
+  filter(sub.genre=="History")
+
+```
+
+# arrange: reorder rows
+
+```{r}
+
+# select book, author, and pages and sort by pages in ascending order
+books_l %>% 
+  select(book, book, author, pages) %>%
+  arrange(pages)
+
+#same but in descending order
+books_l %>% 
+  select(book, book, author, pages) %>%
+  arrange(desc(pages))
+
+```
+
+# mutate: add new variables
+
+-   create new variables that are functions of existing variables
+
+```{r}
+
+# create a new variable that assigns each book a length of short, medium, or long based on # of pages
+
+books_l <- 
+  books_l %>% 
+  mutate(
+    length = case_when(
+      pages <=200 ~ "Short", 
+      pages >200 & pages <500 ~ "Medium",
+      pages >=500 ~ "Long"
+    ))
+
+```
+
+# summarise: reduce variables to values
+
+-   group data by some variable and then aggregate it with some function
+
+```{r}
+
+# find average book length by year
+
+books_l %>%
+  group_by(year) %>%
+  summarise(ave_pages = mean(pages))
+
+# calculate the ave # of pages of fiction and non-fiction books read each year
+
+books_l %>%
+  group_by(genre) %>%
+  summarize(ave_pages = mean(pages))
+
+# for each year, count total number of books read and sort in descending order
+
+books_l %>%
+  group_by(year) %>%
+  summarise(book_count=n()) %>%
+  arrange(desc(book_count))
+
+# for each sub-genre, count total number of books and sort in descending order
+
+books_l %>%
+  group_by(sub.genre) %>%
+  summarise(page_count=n()) %>%
+  arrange(desc(page_count))
+
+```
